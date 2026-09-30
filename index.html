@@ -1,30 +1,127 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GE Process Flow</title>
-<meta name="description" content="Gururaj Engineers Pvt. Ltd. — department process flows and checklists.">
-<meta name="theme-color" content="#1D5FD1">
-<link rel="manifest" href="manifest.json">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="GE Flow">
-<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-<link rel="icon" type="image/png" href="assets/icons/icon-192.png">
-<link rel="stylesheet" href="assets/css/app.css">
-</head>
-<body>
-<div id="net" class="net" hidden>You are offline — everything here still works.</div>
-<header class="top">
-  <a href="#/" class="brand" aria-label="Home"><img src="assets/icons/icon-192.png" alt="" width="32" height="32"><span>GE Process Flow</span></a>
-  <a class="btn" href="live.html" style="text-decoration:none">Live app</a>
-  <button id="install" class="btn" hidden>Install app</button>
-</header>
-<main id="app" tabindex="-1"></main>
-<div id="toast" class="toast" role="status" hidden></div>
-<script src="assets/js/flows.js" defer></script>
-<script src="assets/js/app.js" defer></script>
-<script src="assets/js/pwa.js" defer></script>
-</body>
-</html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="apple-mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png"><meta name="theme-color" content="#1D5FD1"><link rel="manifest" href="manifest.json"><link rel="icon" href="assets/icons/icon-192.png"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GE Flow Live</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f5f7fb;--card:#fff;--tx:#14213d;--mu:#65708a;--bd:#dde3ee;--pr:#1d5fd1;--ok:#178a4c;--no:#c0392b}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f1420;--card:#1a2232;--tx:#e8edf7;--mu:#95a0b8;--bd:#2c374d;--pr:#5b9bff;--ok:#4cc38a;--no:#ff7b6b}}
+:root[data-theme=dark]{--bg:#0f1420;--card:#1a2232;--tx:#e8edf7;--mu:#95a0b8;--bd:#2c374d;--pr:#5b9bff;--ok:#4cc38a;--no:#ff7b6b}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--card);border-bottom:1px solid var(--bd);padding:10px 14px;display:flex;gap:10px;align-items:center;z-index:5;flex-wrap:wrap}
+header b{font-size:16px}.live{font-size:12px;color:var(--mu);margin-left:auto}.live i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:4px}
+nav{display:flex;gap:6px;overflow-x:auto;padding:8px 14px;max-width:100%}nav button{white-space:nowrap}
+main{padding:14px;max-width:980px;margin:auto}
+button,select,input,textarea{font:inherit;color:var(--tx)}
+button{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:6px 11px;cursor:pointer}
+button.p{background:var(--pr);border-color:var(--pr);color:#fff}button.on{border-color:var(--pr);color:var(--pr);font-weight:600}button.d{color:var(--no)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+label{display:block;font-size:12px;color:var(--mu)}label.w{grid-column:1/-1}
+input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:7px 9px;margin-top:3px}
+input[readonly]{opacity:.7}input[type=checkbox]{width:auto;margin:0 8px 0 0}
+.chip{display:inline-block;background:var(--bg);border:1px solid var(--bd);border-radius:99px;padding:2px 10px;font-size:12px;margin:2px;cursor:pointer}
+.chip b{color:var(--pr)}.tag{font-size:12px;border-radius:99px;padding:2px 9px;background:var(--pr);color:#fff}
+.tag.bad{background:var(--no)}.tag.good{background:var(--ok)}
+table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:8px 6px;border-bottom:1px solid var(--bd);font-size:14px}tr.r{cursor:pointer}tr.r:hover{background:var(--bg)}
+.wrap{overflow-x:auto}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}h2{margin:.2em 0 .5em;font-size:18px}h3{font-size:14px;margin:12px 0 6px}
+.chk label{color:var(--tx);font-size:14px;padding:3px 0;display:flex}.log{font-size:12px;color:var(--mu)}.mu{color:var(--mu)}
+</style></head><body>
+<header><b>🏭 GE Flow Live</b><a href="flows.html" style="font-size:13px;color:var(--pr)">📋 Flow charts</a><span class="live" id="live"></span></header>
+<nav id="nav"></nav><main id="app"></main>
+<script>
+const A1=["Customer registered in SAP","Billing & shipping addresses verified","Correct SO type chosen","Customer P.O. number & date entered","Material codes & descriptions correct","Quantity & UoM verified","Pricing, discounts & taxes confirmed","Old quote/supply price revised if needed","Stock (SAP + physical) available or procurable","Delivery date matches customer need","Shipping mode & packing instructions noted","SO reviewed before saving","Order confirmation sent to customer"];
+const A2=["Item descriptions & specs correct","Pricing matches budget","Quantities align","Delivery terms meet timeline","Payment terms acceptable","Vendor credentials checked","Quotation still valid (expiry)","Compared with other quotes","No hidden shipping/handling (door delivery)","Special conditions reviewed"];
+const YN=["Yes","No"],ST=["Standard","Customized"];
+// field: [id,label,type,opts]  types: t n d a(textarea) s(select) r(ref to module) c(calc)
+const M={
+sq:{n:"Sales Quotation",ic:"📈",p:"SQ",main:"customer",amt:"total",st:["Lead","Qualified","Quoted","Negotiation","Won","Lost","Disqualified"],bad:["Lost","Disqualified"],good:["Won"],
+ f:[["customer","Customer","t"],["source","Lead source","s",["IndiaMART","Mail","WhatsApp","Verbal"]],["ctype","Customer type","s",["Trader","End user"]],["ckind","Existing / New","s",["Existing","New"]],["contact","Contact person","t"],["phone","Phone / email","t"],["part","Part code","t"],["desc","Product description","a"],["qty","Qty","n"],["rate","Rate ₹","n"],["disc","Discount %","n"],["gst","GST %","n"],["total","Total ₹ (auto)","c",d=>(d.qty||0)*(d.rate||0)*(1-(d.disc||0)/100)*(1+(d.gst||0)/100)],["valid","Valid till","d"],["pay","Payment terms","t"],["lossWhy","Loss / disqualify reason","a"]],
+ next:[["so","Create Sales Order"]]},
+so:{n:"Sales Order",ic:"🧾",p:"SO",main:"customer",amt:"total",st:["Draft","Confirmed","In Design","In Purchase","In Production","Ready","Dispatched","Closed"],good:["Closed"],chk:["A1 — SAP order checklist",A1],
+ f:[["sq","From quotation","r","sq"],["customer","Customer","t"],["po","Customer P.O. no.","t"],["podate","P.O. date","d"],["bill","Bill-to address","a"],["ship","Ship-to address","a"],["gstin","GST no.","t"],["pay","Payment terms","t"],["part","Part code","t"],["qty","Qty","n"],["total","Order value ₹","n"],["ptype","Product type","s",ST],["kind","Goods / Service","s",["Goods","Service"]],["stock","Stock available?","s",YN],["itype","If not: item type","s",["Trading","Manufacturing"]],["deliver","Delivery date","d"],["terms","Delivery / programming terms","a"]],
+ next:[["pr","Purchase Requisition"],["wo","Work Order"],["dp","Dispatch"],["sv","Service job"]]},
+pr:{n:"Purchase Requisition",ic:"🛒",p:"PR",main:"item",st:["Raised","Vendor Inquiry","Quotes Compared","Negotiation","PO Created","Received"],good:["Received"],chk:["A2 — Vendor quotation check",A2],
+ f:[["so","Linked SO","r","so"],["item","Item / part code","t"],["qty","Qty","n"],["itemcls","Classification","s",["Standard","Non-standard"]],["vendor","Vendor","t"],["quote1","Quote 1 ₹","n"],["quote2","Quote 2 ₹","n"],["quote3","Quote 3 ₹","n"],["needBy","Needed by","d"],["notes","Negotiation notes","a"]],
+ next:[["po","Create Purchase Order"]]},
+po:{n:"Purchase Order",ic:"📑",p:"PO",main:"vendor",amt:"total",st:["Draft","Approved","Sent","Vendor Confirmed","Follow-up","Received"],good:["Received"],
+ f:[["pr","From PR","r","pr"],["vendor","Vendor","t"],["item","Item","t"],["qty","Qty","n"],["rate","Rate ₹","n"],["gst","GST %","n"],["total","Total ₹ (auto)","c",d=>(d.qty||0)*(d.rate||0)*(1+(d.gst||0)/100)],["credit","Credit terms (days)","n"],["eta","Delivery date","d"],["appr","Approved by","t"],["conf","Vendor confirmation via","s",["Call","Message","Email"]]],
+ next:[["grn","Create GRN"]]},
+grn:{n:"Goods Receipt (Store)",ic:"📦",p:"GRN",main:"company",amt:"amount",st:["Received","QC Pending","QC Passed","QC Rejected","Invoice to Accounts","Filed"],bad:["QC Rejected"],good:["Filed"],
+ f:[["po","PO","r","po"],["company","Company name","t"],["gstno","GST no.","t"],["inv","Invoice no.","t"],["invdate","Invoice date","d"],["amount","Amount ₹","n"],["qty","Quantity","n"],["mcode","Material code","t"],["qc","QC status","s",["Pending","Pass","Fail"]],["dirsign","Director signed invoice","s",YN],["apinv","SAP AP invoice no.","t"]],next:[]},
+wo:{n:"Work Order (Production)",ic:"🏭",p:"WO",main:"part",st:["Released","Material Requested","Material Verified","Assembly","Wiring","Wiring Test","Quality Check","Power-on Test","Finished","Completion Report"],good:["Completion Report"],
+ f:[["so","Linked SO","r","so"],["part","Product / part","t"],["drawing","Drawing no.","t"],["bom","BOM no.","t"],["qty","Qty","n"],["serials","Serial numbers","a"],["lead","Production lead","t"],["due","Due date","d"],["qcnotes","Finish / colour coat / test notes","a"]],next:[["dp","Dispatch"]]},
+dp:{n:"Dispatch & Invoice",ic:"🚚",p:"DP",main:"customer",st:["Planned","PI Sent","Payment Confirmed","Packing","DC Generated","Invoiced","Dispatched","Signed DC Received","Filed"],good:["Filed"],
+ f:[["so","Linked SO","r","so"],["customer","Customer","t"],["pi","PI no.","t"],["serials","Serial nos. & qty (from Store)","a"],["pack","Packing list no.","t"],["dc","Delivery challan no.","t"],["inv","Tax invoice no.","t"],["ewb","E-waybill no.","t"],["einv","E-invoice IRN","t"],["transp","Transporter","t"],["lr","LR / tracking","t"],["ddate","Dispatch date","d"]],next:[]},
+sv:{n:"Service / Repair",ic:"🛠️",p:"SV",main:"customer",st:["Received","Warranty Checked","Assigned","Quoted","Customer Approved","Repairing","Report Ready","Invoiced","Dispatched","Returned (declined)"],bad:["Returned (declined)"],good:["Dispatched"],
+ f:[["customer","Customer","t"],["product","Product","t"],["serial","Serial no.","t"],["fault","Fault reported","a"],["warr","Warranty","s",["Within","Out of warranty"]],["ptype","Product type","s",ST],["assign","Assigned to / vendor","t"],["parts","Parts charge ₹","n"],["fee","Service fee ₹","n"],["cost","Total repair cost ₹ (auto)","c",d=>(d.parts||0)+(d.warr==="Within"?0:(d.fee||0))],["appr","Customer agrees to cost","s",YN],["report","Service report","a"],["mom","MOM no.","t"]],next:[]}
+};
+const $=s=>document.querySelector(s),app=$("#app");
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let docs=[],view={m:null,id:null,f:null},store,me="Guest";
+const money=n=>n?"₹"+Number(n).toLocaleString("en-IN",{maximumFractionDigits:0}):"";
+// ---------- storage: shared live db, falls back to this device ----------
+function local(){let k="ge_live_docs",cb=()=>{};const rd=()=>{try{return JSON.parse(localStorage.getItem(k)||"[]")}catch(e){return[]}},wr=a=>{try{localStorage.setItem(k,JSON.stringify(a))}catch(e){}cb(a)};
+ return{mode:"This device only",sub(f){cb=f;f(rd())},save(d){const a=rd().filter(x=>x.id!==d.id);a.push(d);wr(a)},del(id){wr(rd().filter(x=>x.id!==id))}}}
+async function init(){let db=null;try{db=await claude.use("db")}catch(e){}
+ try{const u=await claude.use("user");if(u){me=(await u.me()).name||"User"}}catch(e){}
+ if(db){const c=db.collection("docs");store={mode:"Live · shared with your team",sub(f){c.onSnapshot(s=>f(s.docs.map(x=>({...x.data(),id:x.id}))),()=>{})},save(d){const{id,...r}=d;return c.doc(id).set(r)},del(id){return c.doc(id).delete()}}}
+ else store=local();
+ store.sub(a=>{docs=a;render()});}
+// ---------- helpers ----------
+const nextNo=m=>{const n=docs.filter(d=>d.m===m).map(d=>+d.id.split("-")[1]||0);return M[m].p+"-"+String(Math.max(0,...n)+1).padStart(4,"0")};
+const label=d=>d.id+" · "+(d.v[M[d.m].main]||"—");
+function calc(m,v){M[m].f.forEach(f=>{if(f[2]==="c")v[f[0]]=Math.round(f[3](v))})}
+function blank(m,pre){const v={...pre};return{id:nextNo(m),m,v,st:M[m].st[0],chk:{},log:[],ts:Date.now()}}
+function prefill(from,to){const v=from.v,o={};o[to==="so"?"sq":"so"]=from.id;
+ if(from.m==="sq"){Object.assign(o,{customer:v.customer,part:v.part,qty:v.qty,total:v.total,pay:v.pay})}
+ if(from.m==="so"){Object.assign(o,{customer:v.customer,part:v.part,item:v.part,qty:v.qty})}
+ if(from.m==="pr"){Object.assign(o,{pr:from.id,item:v.item,qty:v.qty,vendor:v.vendor})}
+ if(from.m==="po"){Object.assign(o,{po:from.id,company:v.vendor,mcode:v.item,qty:v.qty,amount:v.total})}
+ if(from.m==="wo"){o.so=v.so;o.customer=(docs.find(d=>d.id===v.so)||{v:{}}).v.customer;o.serials=v.serials}
+ if(to==="sv"){delete o.so}
+ return o}
+function log(d,t){d.log.push([Date.now(),me,t])}
+// ---------- views ----------
+function nav(){const b=(k,t,c)=>`<button class="${c?"on":""}" data-go="${k}">${t}</button>`;
+ $("#nav").innerHTML=b("","📊 Board",!view.m)+Object.entries(M).map(([k,m])=>b(k,m.ic+" "+m.n,view.m===k)).join("");
+ $("#nav").querySelectorAll("button").forEach(x=>x.onclick=()=>{view={m:x.dataset.go||null,id:null,f:null};render()});
+ $("#live").innerHTML=`<i></i>${esc(store?store.mode:"Connecting…")}`}
+function board(){app.innerHTML=`<h2>Live board</h2><p class="mu">Every document moves through the stages of its department flow. Tap a stage to see what's sitting there.</p>`+
+ Object.entries(M).map(([k,m])=>{const ds=docs.filter(d=>d.m===k);return `<div class="card"><div class="row"><b>${m.ic} ${m.n}</b><span class="mu">${ds.length} total</span><button class="p" data-new="${k}" style="margin-left:auto">+ New</button></div>${m.st.map(s=>`<span class="chip" data-go="${k}" data-f="${esc(s)}">${esc(s)} <b>${ds.filter(d=>d.st===s).length}</b></span>`).join("")}</div>`}).join("");
+ app.querySelectorAll("[data-new]").forEach(x=>x.onclick=()=>open(blank(x.dataset.new),true));
+ app.querySelectorAll(".chip").forEach(x=>x.onclick=()=>{view={m:x.dataset.go,id:null,f:x.dataset.f};render()})}
+function list(){const m=M[view.m];let ds=docs.filter(d=>d.m===view.m&&(!view.f||d.st===view.f)).sort((a,b)=>b.ts-a.ts);
+ const tot=m.amt?ds.reduce((s,d)=>s+(+d.v[m.amt]||0),0):0;
+ app.innerHTML=`<div class="row"><h2 style="margin:0">${m.ic} ${m.n}</h2>${view.f?`<span class="tag">${esc(view.f)}</span><button id="cf">clear</button>`:""}<button class="p" id="nw" style="margin-left:auto">+ New ${m.p}</button></div>${tot?`<p class="mu">Value in view: <b>${money(tot)}</b></p>`:""}
+ <div class="card wrap"><table><tr><th>No.</th><th>${esc(m.f.find(f=>f[0]===m.main)[1])}</th><th>Stage</th>${m.amt?"<th>₹</th>":""}</tr>${ds.map(d=>`<tr class="r" data-id="${d.id}"><td>${d.id}</td><td>${esc(d.v[m.main])}</td><td><span class="tag ${(m.bad||[]).includes(d.st)?"bad":(m.good||[]).includes(d.st)?"good":""}">${esc(d.st)}</span></td>${m.amt?`<td>${money(d.v[m.amt])}</td>`:""}</tr>`).join("")||`<tr><td colspan=4 class="mu">Nothing here yet.</td></tr>`}</table></div>`;
+ $("#nw").onclick=()=>open(blank(view.m),true);const c=$("#cf");if(c)c.onclick=()=>{view.f=null;render()};
+ app.querySelectorAll("tr.r").forEach(r=>r.onclick=()=>open(docs.find(d=>d.id===r.dataset.id)))}
+let draft=null;
+function open(d,isNew){draft=JSON.parse(JSON.stringify(d));draft._new=!!isNew;view={m:d.m,id:d.id,f:null};nav();form();window.scrollTo(0,0)}
+function form(){const d=draft,m=M[d.m];const inp=f=>{const[id,l,t,o]=f,v=d.v[id]??"",w=t==="a"?" w":"";
+  if(t==="a")return`<label class="w">${l}<textarea rows=2 data-f="${id}">${esc(v)}</textarea></label>`;
+  if(t==="s")return`<label>${l}<select data-f="${id}"><option></option>${o.map(x=>`<option${x===v?" selected":""}>${esc(x)}</option>`).join("")}</select></label>`;
+  if(t==="r")return`<label>${l}<select data-f="${id}"><option value="">— none —</option>${docs.filter(x=>x.m===o).map(x=>`<option value="${x.id}"${x.id===v?" selected":""}>${esc(label(x))}</option>`).join("")}</select></label>`;
+  return`<label>${l}<input data-f="${id}" type="${t==="n"||t==="c"?"number":t==="d"?"date":"text"}" value="${esc(v)}"${t==="c"?" readonly":""}></label>`};
+ app.innerHTML=`<button id="bk">← ${m.n} list</button><div class="card" style="margin-top:10px"><div class="row"><h2 style="margin:0">${m.ic} ${d.id}</h2><span class="mu" style="margin-left:auto">Stage</span><select id="stg" style="width:auto">${m.st.map(s=>`<option${s===d.st?" selected":""}>${esc(s)}</option>`).join("")}</select></div>
+ <div class="row">${m.st.map((s,i)=>`<span class="tag ${i<=m.st.indexOf(d.st)?"":"bad"}" style="${i<=m.st.indexOf(d.st)?"":"background:var(--bd);color:var(--mu)"}">${esc(s)}</span>`).join("")}</div>
+ <div class="grid">${m.f.map(inp).join("")}</div>
+ ${m.chk?`<h3>${m.chk[0]}</h3><div class="chk">${m.chk[1].map((t,i)=>`<label><input type="checkbox" data-c="${i}"${d.chk[i]?" checked":""}>${esc(t)}</label>`).join("")}</div>`:""}
+ <div class="row"><button class="p" id="sv">Save</button><button id="adv">Save & next stage ▸</button>${d._new?"":`<button class="d" id="dl" style="margin-left:auto">Delete</button>`}</div>
+ ${!d._new&&m.next.length?`<h3>Continue the flow</h3><div class="row">${m.next.map(([k,t])=>`<button data-nx="${k}">→ ${t}</button>`).join("")}</div>`:""}
+ ${d.log.length?`<h3>History</h3><div class="log">${d.log.slice().reverse().map(l=>`${new Date(l[0]).toLocaleString("en-IN")} · ${esc(l[1])} · ${esc(l[2])}<br>`).join("")}</div>`:""}</div>`;
+ const pull=()=>{app.querySelectorAll("[data-f]").forEach(e=>{const t=m.f.find(f=>f[0]===e.dataset.f)[2];d.v[e.dataset.f]=t==="n"?(e.value===""?"":+e.value):e.value});app.querySelectorAll("[data-c]").forEach(e=>d.chk[e.dataset.c]=e.checked);calc(d.m,d.v)};
+ app.querySelectorAll("[data-f]").forEach(e=>e.onchange=()=>{pull();m.f.forEach(f=>{if(f[2]==="c"){const c=app.querySelector(`[data-f=${f[0]}]`);if(c)c.value=d.v[f[0]]}})});
+ const save=async(t)=>{pull();const o=draft.st;d.st=$("#stg").value;const n=d._new;delete d._new;d.ts=Date.now();if(n)log(d,"Created");else if(t)log(d,t);
+  const oldSt=(docs.find(x=>x.id===d.id)||{}).st;if(!n&&oldSt&&oldSt!==d.st)log(d,"Stage: "+oldSt+" → "+d.st);
+  try{await store.save(d)}catch(e){alert("Could not save: "+(e.message||e))}};
+ $("#sv").onclick=async()=>{await save("Edited");open(d)};
+ $("#adv").onclick=async()=>{const i=m.st.indexOf($("#stg").value);if(i<m.st.length-1)$("#stg").value=m.st[i+1];await save();open(d)};
+ $("#bk").onclick=()=>{view={m:d.m,id:null,f:null};render()};
+ const dl=$("#dl");if(dl)dl.onclick=async()=>{if(confirm("Delete "+d.id+"?")){await store.del(d.id);view={m:d.m,id:null,f:null};render()}};
+ app.querySelectorAll("[data-nx]").forEach(b=>b.onclick=()=>open(blank(b.dataset.nx,prefill(d,b.dataset.nx)),true))}
+function render(){if(!store)return;nav();if(!view.m)board();else if(view.id&&draft&&draft.id===view.id){if(!app.contains(document.activeElement)||!app.querySelector("#sv"))form()}else list()}
+init();
+if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script></body></html>
