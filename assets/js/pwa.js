@@ -1,0 +1,22 @@
+(function(){'use strict';
+const $=s=>document.querySelector(s);
+const toast=(msg,label,fn)=>{const t=$('#toast');t.innerHTML='<span></span>';t.firstChild.textContent=msg;if(label){const b=document.createElement('button');b.className='btn';b.textContent=label;b.onclick=()=>{fn();t.hidden=true};t.appendChild(b)}t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,label?30000:5000)};
+const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const ios=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const net=()=>{$('#net').hidden=navigator.onLine};addEventListener('online',net);addEventListener('offline',net);net();
+let dp=null;const btn=$('#install');
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;if(!standalone())btn.hidden=false});
+addEventListener('appinstalled',()=>{btn.hidden=true;toast('App installed.')});
+btn.onclick=async()=>{if(dp){dp.prompt();try{await dp.userChoice}catch(e){}dp=null;btn.hidden=true}else if(ios())toast('Tap Share, then "Add to Home Screen".')};
+if(ios()&&!standalone())btn.hidden=false;
+if(!('serviceWorker'in navigator)||!(location.protocol==='https:'||location.hostname==='localhost'))return;
+const had=!!navigator.serviceWorker.controller;let reloading=false,pending=null;
+navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!had||reloading)return;reloading=true;location.reload()});
+const apply=()=>pending&&pending.postMessage({type:'SKIP_WAITING'});
+const offer=w=>{pending=w;if(document.hidden)apply();else toast('A new version is ready.','Refresh',apply)};
+addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{
+  if(r.waiting&&had)offer(r.waiting);
+  r.addEventListener('updatefound',()=>{const w=r.installing;w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller)offer(w)})});
+  document.addEventListener('visibilitychange',()=>{document.hidden?apply():r.update().catch(()=>{})});
+  setInterval(()=>r.update().catch(()=>{}),36e5)}).catch(e=>console.warn('SW failed',e)));
+})();
