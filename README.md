@@ -20,3 +20,8 @@ File Manager → create `public_html/flow/` → upload everything → open `http
 ## Verify
 Chrome DevTools → Application: manifest has no errors, `sw.js` is activated, Cache Storage has `ge-shell-v1`.
 Switch Network to Offline and reload: the app still opens. Install via the Install button (iPhone: Share → Add to Home Screen).
+
+## Live app (live.html)
+Working document model: Sales Quotation → Sales Order → PR → PO → GRN, Work Order, Dispatch & Invoice, Service. Open via the **Live app** button.
+Data is saved in the browser on each device (localStorage), works offline. It is not shared between devices — that needs a backend (e.g. Supabase/Firebase) — ask to add it.
+Back up by clearing nothing: browser data stays until site data is cleared.
