@@ -27,39 +27,111 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:8px 6px;
 .wrap{overflow-x:auto}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}h2{margin:.2em 0 .5em;font-size:18px}h3{font-size:14px;margin:12px 0 6px}
 .chk label{color:var(--tx);font-size:14px;padding:3px 0;display:flex}.log{font-size:12px;color:var(--mu)}.mu{color:var(--mu)}
 </style></head><body>
-<header><b>🏭 GE Flow Live</b><a href="flows.html" style="font-size:13px;color:var(--pr)">📋 Flow charts</a><span class="live" id="live"></span></header>
+<header><b>🏭 GE Flow Live</b><a href="flows.html" style="font-size:13px;color:var(--pr)">📋 Flow charts</a><select id="as" title="Acting as" style="width:auto;margin:0"></select><span class="live" id="live"></span></header>
 <nav id="nav"></nav><main id="app"></main>
 <script>
 const A1=["Customer registered in SAP","Billing & shipping addresses verified","Correct SO type chosen","Customer P.O. number & date entered","Material codes & descriptions correct","Quantity & UoM verified","Pricing, discounts & taxes confirmed","Old quote/supply price revised if needed","Stock (SAP + physical) available or procurable","Delivery date matches customer need","Shipping mode & packing instructions noted","SO reviewed before saving","Order confirmation sent to customer"];
 const A2=["Item descriptions & specs correct","Pricing matches budget","Quantities align","Delivery terms meet timeline","Payment terms acceptable","Vendor credentials checked","Quotation still valid (expiry)","Compared with other quotes","No hidden shipping/handling (door delivery)","Special conditions reviewed"];
 const YN=["Yes","No"],ST=["Standard","Customized"];
 // field: [id,label,type,opts]  types: t n d a(textarea) s(select) r(ref to module) c(calc)
+const ROLES=["Admin","Sales","Purchase","Store","Production","Quality","Accounts","Dispatch"];
 const M={
 sq:{n:"Sales Quotation",ic:"📈",p:"SQ",main:"customer",amt:"total",st:["Lead","Qualified","Quoted","Negotiation","Won","Lost","Disqualified"],bad:["Lost","Disqualified"],good:["Won"],
- f:[["customer","Customer","t"],["source","Lead source","s",["IndiaMART","Mail","WhatsApp","Verbal"]],["ctype","Customer type","s",["Trader","End user"]],["ckind","Existing / New","s",["Existing","New"]],["contact","Contact person","t"],["phone","Phone / email","t"],["part","Part code","t"],["desc","Product description","a"],["qty","Qty","n"],["rate","Rate ₹","n"],["disc","Discount %","n"],["gst","GST %","n"],["total","Total ₹ (auto)","c",d=>(d.qty||0)*(d.rate||0)*(1-(d.disc||0)/100)*(1+(d.gst||0)/100)],["valid","Valid till","d"],["pay","Payment terms","t"],["lossWhy","Loss / disqualify reason","a"]],
+ f:[["customer","Customer","t","cust"],["source","Lead source","s",["IndiaMART","Mail","WhatsApp","Verbal"]],["ctype","Customer type","s",["Trader","End user"]],["ckind","Existing / New","s",["Existing","New"]],["contact","Contact person","t"],["phone","Phone / email","t"],["part","Part code","t","item"],["desc","Product description","a"],["qty","Qty","n"],["rate","Rate ₹","n"],["disc","Discount %","n"],["gst","GST %","n"],["total","Total ₹ (auto)","c",d=>(d.qty||0)*(d.rate||0)*(1-(d.disc||0)/100)*(1+(d.gst||0)/100)],["valid","Valid till","d"],["pay","Payment terms","t"],["lossWhy","Loss / disqualify reason","a"]],
  next:[["so","Create Sales Order"]]},
 so:{n:"Sales Order",ic:"🧾",p:"SO",main:"customer",amt:"total",st:["Draft","Confirmed","In Design","In Purchase","In Production","Ready","Dispatched","Closed"],good:["Closed"],chk:["A1 — SAP order checklist",A1],
- f:[["sq","From quotation","r","sq"],["customer","Customer","t"],["po","Customer P.O. no.","t"],["podate","P.O. date","d"],["bill","Bill-to address","a"],["ship","Ship-to address","a"],["gstin","GST no.","t"],["pay","Payment terms","t"],["part","Part code","t"],["qty","Qty","n"],["total","Order value ₹","n"],["ptype","Product type","s",ST],["kind","Goods / Service","s",["Goods","Service"]],["stock","Stock available?","s",YN],["itype","If not: item type","s",["Trading","Manufacturing"]],["deliver","Delivery date","d"],["terms","Delivery / programming terms","a"]],
- next:[["pr","Purchase Requisition"],["wo","Work Order"],["dp","Dispatch"],["sv","Service job"]]},
+ f:[["sq","From quotation","r","sq"],["customer","Customer","t","cust"],["po","Customer P.O. no.","t"],["podate","P.O. date","d"],["bill","Bill-to address","a"],["ship","Ship-to address","a"],["gstin","GST no.","t"],["pay","Payment terms","t"],["part","Part code","t","item"],["qty","Qty","n"],["total","Order value incl. GST ₹","n"],["gst","GST %","n"],["ptype","Product type","s",ST],["kind","Goods / Service","s",["Goods","Service"]],["stock","Stock available?","s",YN],["itype","If not: item type","s",["Trading","Manufacturing"]],["deliver","Delivery date","d"],["terms","Delivery / programming terms","a"]],
+ next:[["pr","Purchase Requisition"],["wo","Work Order"],["pi","Proforma Invoice"],["ps","Packing Slip"],["dc","Delivery Challan"],["ti","Tax Invoice"],["dp","Dispatch"],["sv","Service job"]]},
 pr:{n:"Purchase Requisition",ic:"🛒",p:"PR",main:"item",st:["Raised","Vendor Inquiry","Quotes Compared","Negotiation","PO Created","Received"],good:["Received"],chk:["A2 — Vendor quotation check",A2],
- f:[["so","Linked SO","r","so"],["item","Item / part code","t"],["qty","Qty","n"],["itemcls","Classification","s",["Standard","Non-standard"]],["vendor","Vendor","t"],["quote1","Quote 1 ₹","n"],["quote2","Quote 2 ₹","n"],["quote3","Quote 3 ₹","n"],["needBy","Needed by","d"],["notes","Negotiation notes","a"]],
+ f:[["so","Linked SO","r","so"],["item","Item / part code","t","item"],["qty","Qty","n"],["itemcls","Classification","s",["Standard","Non-standard"]],["vendor","Vendor","t","supp"],["quote1","Quote 1 ₹","n"],["quote2","Quote 2 ₹","n"],["quote3","Quote 3 ₹","n"],["needBy","Needed by","d"],["notes","Negotiation notes","a"]],
  next:[["po","Create Purchase Order"]]},
 po:{n:"Purchase Order",ic:"📑",p:"PO",main:"vendor",amt:"total",st:["Draft","Approved","Sent","Vendor Confirmed","Follow-up","Received"],good:["Received"],
- f:[["pr","From PR","r","pr"],["vendor","Vendor","t"],["item","Item","t"],["qty","Qty","n"],["rate","Rate ₹","n"],["gst","GST %","n"],["total","Total ₹ (auto)","c",d=>(d.qty||0)*(d.rate||0)*(1+(d.gst||0)/100)],["credit","Credit terms (days)","n"],["eta","Delivery date","d"],["appr","Approved by","t"],["conf","Vendor confirmation via","s",["Call","Message","Email"]]],
+ f:[["pr","From PR","r","pr"],["vendor","Vendor","t","supp"],["item","Item","t","item"],["qty","Qty","n"],["rate","Rate ₹","n"],["gst","GST %","n"],["total","Total ₹ (auto)","c",d=>(d.qty||0)*(d.rate||0)*(1+(d.gst||0)/100)],["credit","Credit terms (days)","n"],["eta","Delivery date","d"],["appr","Approved by","t"],["conf","Vendor confirmation via","s",["Call","Message","Email"]]],
  next:[["grn","Create GRN"]]},
 grn:{n:"Goods Receipt (Store)",ic:"📦",p:"GRN",main:"company",amt:"amount",st:["Received","QC Pending","QC Passed","QC Rejected","Invoice to Accounts","Filed"],bad:["QC Rejected"],good:["Filed"],
- f:[["po","PO","r","po"],["company","Company name","t"],["gstno","GST no.","t"],["inv","Invoice no.","t"],["invdate","Invoice date","d"],["amount","Amount ₹","n"],["qty","Quantity","n"],["mcode","Material code","t"],["qc","QC status","s",["Pending","Pass","Fail"]],["dirsign","Director signed invoice","s",YN],["apinv","SAP AP invoice no.","t"]],next:[]},
+ f:[["po","PO","r","po"],["company","Company name","t","supp"],["gstno","GST no.","t"],["inv","Invoice no.","t"],["invdate","Invoice date","d"],["amount","Amount ₹","n"],["qty","Quantity","n"],["mcode","Material code","t","item"],["qc","QC status","s",["Pending","Pass","Fail"]],["dirsign","Director signed invoice","s",YN],["apinv","SAP AP invoice no.","t"]],next:[]},
 wo:{n:"Work Order (Production)",ic:"🏭",p:"WO",main:"part",st:["Released","Material Requested","Material Verified","Assembly","Wiring","Wiring Test","Quality Check","Power-on Test","Finished","Completion Report"],good:["Completion Report"],
- f:[["so","Linked SO","r","so"],["part","Product / part","t"],["drawing","Drawing no.","t"],["bom","BOM no.","t"],["qty","Qty","n"],["serials","Serial numbers","a"],["lead","Production lead","t"],["due","Due date","d"],["qcnotes","Finish / colour coat / test notes","a"]],next:[["dp","Dispatch"]]},
+ f:[["so","Linked SO","r","so"],["part","Product / part","t"],["drawing","Drawing no.","t"],["bom","BOM no.","t"],["qty","Qty","n"],["serials","Serial numbers","a"],["lead","Production lead","t"],["due","Due date","d"],["qcnotes","Finish / colour coat / test notes","a"]],next:[["qa","Quality inspection"],["dp","Dispatch"]]},
 dp:{n:"Dispatch & Invoice",ic:"🚚",p:"DP",main:"customer",st:["Planned","PI Sent","Payment Confirmed","Packing","DC Generated","Invoiced","Dispatched","Signed DC Received","Filed"],good:["Filed"],
- f:[["so","Linked SO","r","so"],["customer","Customer","t"],["pi","PI no.","t"],["serials","Serial nos. & qty (from Store)","a"],["pack","Packing list no.","t"],["dc","Delivery challan no.","t"],["inv","Tax invoice no.","t"],["ewb","E-waybill no.","t"],["einv","E-invoice IRN","t"],["transp","Transporter","t"],["lr","LR / tracking","t"],["ddate","Dispatch date","d"]],next:[]},
+ f:[["so","Linked SO","r","so"],["customer","Customer","t","cust"],["pi","PI no.","t"],["serials","Serial nos. & qty (from Store)","a"],["pack","Packing list no.","t"],["dc","Delivery challan no.","t"],["inv","Tax invoice no.","t"],["ewb","E-waybill no.","t"],["einv","E-invoice IRN","t"],["transp","Transporter","t"],["lr","LR / tracking","t"],["ddate","Dispatch date","d"]],next:[]},
 sv:{n:"Service / Repair",ic:"🛠️",p:"SV",main:"customer",st:["Received","Warranty Checked","Assigned","Quoted","Customer Approved","Repairing","Report Ready","Invoiced","Dispatched","Returned (declined)"],bad:["Returned (declined)"],good:["Dispatched"],
- f:[["customer","Customer","t"],["product","Product","t"],["serial","Serial no.","t"],["fault","Fault reported","a"],["warr","Warranty","s",["Within","Out of warranty"]],["ptype","Product type","s",ST],["assign","Assigned to / vendor","t"],["parts","Parts charge ₹","n"],["fee","Service fee ₹","n"],["cost","Total repair cost ₹ (auto)","c",d=>(d.parts||0)+(d.warr==="Within"?0:(d.fee||0))],["appr","Customer agrees to cost","s",YN],["report","Service report","a"],["mom","MOM no.","t"]],next:[]}
+ f:[["customer","Customer","t","cust"],["product","Product","t"],["serial","Serial no.","t"],["fault","Fault reported","a"],["warr","Warranty","s",["Within","Out of warranty"]],["ptype","Product type","s",ST],["assign","Assigned to / vendor","t"],["parts","Parts charge ₹","n"],["fee","Service fee ₹","n"],["cost","Total repair cost ₹ (auto)","c",d=>(d.parts||0)+(d.warr==="Within"?0:(d.fee||0))],["appr","Customer agrees to cost","s",YN],["report","Service report","a"],["mom","MOM no.","t"]],next:[]},
+cu:{n:"Customers",ic:"👥",p:"CU",main:"name",cols:["gstin","phone"],st:["Active","On hold","Inactive"],good:["Active"],bad:["Inactive"],
+ f:[["name","Customer name","t"],["gstin","GST no.","t"],["state","State","t"],["contact","Contact person","t"],["phone","Phone","t"],["email","Email","t"],["bill","Bill-to address","a"],["ship","Ship-to address","a"],["credit","Credit days","n"],["limit","Credit limit ₹","n"],["ctype","Type","s",["Trader","End user"]]],next:[["sq","New quotation"],["so","New sales order"]]},
+sp:{n:"Suppliers",ic:"🏢",p:"SP",main:"name",cols:["gstin","phone"],st:["Active","On hold","Blacklisted"],good:["Active"],bad:["Blacklisted"],
+ f:[["name","Supplier name","t"],["gstin","GST no.","t"],["state","State","t"],["contact","Contact person","t"],["phone","Phone","t"],["email","Email","t"],["addr","Address","a"],["credit","Credit days","n"],["cat","Category","s",["Electronics","Mechanical","Sheet metal","Packing","Service","Other"]],["rating","Rating (1-5)","n"]],next:[["pr","New requisition"]]},
+it:{n:"Items & BOM",ic:"🧩",p:"IT",main:"code",cols:["type","uom","reorder"],st:["Active","Obsolete"],good:["Active"],bad:["Obsolete"],
+ f:[["code","Item code","t"],["desc","Description","a"],["type","Item type","s",["Finished","Sub-assembly","Raw material","Trading"]],["uom","UoM","s",["Nos","Kg","Mtr","Set","Box"]],["hsn","HSN","t"],["gst","GST %","n"],["cost","Cost ₹","n"],["price","Selling price ₹","n"],["reorder","Reorder level","n"],["lead","Lead time (days)","n"],["bom","BOM — one line per component:  CODE:qty","a"]],next:[["wo","Work order"]]},
+mr:{n:"MRP Run",ic:"🧮",p:"MR",main:"scope",cols:["date","short","prs"],st:["Completed","Reviewed"],good:["Reviewed"],
+ f:[["date","Run date","d"],["scope","Scope","t"],["lines","Items checked","n"],["short","Shortage items","n"],["prs","PRs raised","n"],["result","Result","a"]],next:[]},
+pf:{n:"Production Flow",ic:"🔧",nb:1,st:[],f:[],next:[]},
+qa:{n:"Quality",ic:"✅",p:"QA",main:"item",cols:["test","qtyIns","qtyRej"],st:["Pending","Passed","Rework","Rejected"],bad:["Rejected"],good:["Passed"],
+ f:[["wo","Work Order","r","wo"],["item","Item","t","item"],["test","Inspection type","s",["Incoming","In-process","Final","Power-on test"]],["lot","Lot / serial","t"],["qtyIns","Qty inspected","n"],["qtyOk","Qty accepted","n"],["qtyRej","Qty rejected (auto)","c",d=>Math.max(0,(d.qtyIns||0)-(d.qtyOk||0))],["defect","Defect / observation","a"],["action","Disposition","s",["Accept","Rework","Reject","Return to supplier"]],["insp","Inspector","t"],["date","Date","d"]],next:[]},
+sl:{n:"Stock Ledger",ic:"📒",p:"SL",main:"item",cols:["date","txn","qty"],st:["Posted","Reversed"],bad:["Reversed"],
+ f:[["date","Date","d"],["item","Item code","t","item"],["txn","Transaction","s",["Receipt","Issue","Adjustment +","Adjustment −"]],["qty","Qty","n"],["loc","Location","t"],["ref","Reference doc","t"],["remark","Remark","a"]],next:[]},
+av:{n:"Stock Availability",ic:"📦",nb:1,st:[],f:[],next:[]},
+pi:{n:"Proforma Invoice",ic:"🧾",p:"PI",main:"customer",amt:"amt",st:["Draft","Sent","Advance Received","Cancelled"],good:["Advance Received"],bad:["Cancelled"],
+ f:[["so","Linked SO","r","so"],["customer","Customer","t","cust"],["part","Item","t","item"],["qty","Qty","n"],["rate","Rate ₹","n"],["gst","GST %","n"],["amt","Proforma total ₹ (auto)","c",d=>(d.qty||0)*(d.rate||0)*(1+(d.gst||0)/100)],["adv","Advance required %","n"],["valid","Valid till","d"],["bank","Bank / payment details","a"]],next:[["ti","Tax Invoice"]]},
+ps:{n:"Packing Slips",ic:"📤",p:"PS",main:"customer",cols:["boxes","gross"],st:["Draft","Packed","Verified","Handed to dispatch"],good:["Handed to dispatch"],
+ f:[["so","Linked SO","r","so"],["customer","Customer","t","cust"],["boxes","No. of boxes","n"],["gross","Gross wt (kg)","n"],["net","Net wt (kg)","n"],["dims","Box dimensions","t"],["contents","Contents","a"],["serials","Serial numbers","a"],["packer","Packed by","t"],["date","Date","d"]],next:[]},
+dc:{n:"Delivery Challans",ic:"🚛",p:"DC",main:"customer",cols:["part","qty","vehicle"],st:["Draft","Issued","In Transit","Signed Copy Received"],good:["Signed Copy Received"],
+ f:[["so","Linked SO","r","so"],["customer","Customer","t","cust"],["part","Item","t","item"],["qty","Qty","n"],["reason","Reason","s",["Supply","Job work","Repair return","Sample"]],["vehicle","Vehicle no.","t"],["transp","Transporter","t"],["driver","Driver / phone","t"],["ewb","E-waybill no.","t"],["contents","Contents / serials","a"],["date","Date","d"]],next:[]},
+ti:{n:"Tax Invoices",ic:"💰",p:"TI",main:"customer",amt:"total",cols:["gstin","pos"],st:["Draft","Issued","Sent","Part Paid","Paid","Cancelled"],good:["Paid"],bad:["Cancelled"],
+ f:[["so","Linked SO","r","so"],["customer","Customer","t","cust"],["gstin","Customer GST no.","t"],["pos","Place of supply","s",["Intra-state","Inter-state"]],["part","Item","t","item"],["qty","Qty","n"],["rate","Rate ₹","n"],["taxable","Taxable value ₹ (auto)","c",d=>(d.qty||0)*(d.rate||0)],["gst","GST %","n"],["cgst","CGST ₹ (auto)","c",d=>d.pos==="Inter-state"?0:d.taxable*(d.gst||0)/200],["sgst","SGST ₹ (auto)","c",d=>d.pos==="Inter-state"?0:d.taxable*(d.gst||0)/200],["igst","IGST ₹ (auto)","c",d=>d.pos==="Inter-state"?d.taxable*(d.gst||0)/100:0],["total","Invoice total ₹ (auto)","c",d=>d.taxable+d.cgst+d.sgst+d.igst],["irn","E-invoice IRN","t"],["ewb","E-waybill no.","t"],["due","Due date","d"]],next:[]},
+us:{n:"Users & Roles",ic:"🪪",p:"US",main:"name",cols:["role","email"],st:["Active","Disabled"],good:["Active"],bad:["Disabled"],
+ f:[["name","Full name","t"],["email","Email","t"],["phone","Phone","t"],["role","Role","s",ROLES],["dept","Department","t"],["joined","Joined on","d"]],next:[]},
+pm:{n:"User Permissions",ic:"🔐",nb:1,st:[],f:[],next:[]},
+dr:{n:"Daily Report",ic:"🗓️",p:"DR",main:"date",cols:["author"],st:["Draft","Submitted","Reviewed"],good:["Reviewed"],btn:["⚡ Auto-fill activity",d=>daily(d)],
+ f:[["date","Date","d"],["author","Prepared by","t"],["summary","Summary of the day","a"],["auto","System activity (auto-filled)","a"],["issues","Issues / blockers","a"],["plan","Plan for tomorrow","a"]],next:[]}
 };
 const $=s=>document.querySelector(s),app=$("#app");
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 let docs=[],view={m:null,id:null,f:null},store,me="Guest";
 const money=n=>n?"₹"+Number(n).toLocaleString("en-IN",{maximumFractionDigits:0}):"";
+const today=()=>new Date().toLocaleDateString("sv-SE"),pad=n=>String(n).padStart(4,"0"),maxno=k=>Math.max(0,...docs.filter(x=>x.m===k).map(x=>+x.id.split("-")[1]||0));
+const GROUPS=[["Sales",["cu","sq","so","pi","ps","dc","ti"]],["Purchase",["sp","pr","po","grn"]],["Production",["it","mr","wo","pf","qa"]],["Stock",["sl","av"]],["Admin",["us","pm","dr"]]],ORD=GROUPS.flatMap(g=>g[1]);
+let asUser="",pmE=null;try{asUser=localStorage.getItem("ge_as")||""}catch(e){}
+const who=()=>asUser||me;
+function role(){const u=docs.find(x=>x.m==="us"&&x.st==="Active"&&x.v.name===asUser);return u?u.v.role:"Admin"}
+function lvl(k){const r=role();if(r==="Admin")return 2;if(k==="pm"||k==="us")return 0;const p=docs.find(x=>x.id==="PERM"),x=p?p.v[r+"_"+k]:undefined;return x===undefined?2:+x}
+function stock(){const s={};docs.filter(d=>d.m==="sl"&&d.st!=="Reversed"&&d.v.item).forEach(d=>{const q=+d.v.qty||0;s[d.v.item]=(s[d.v.item]||0)+(/^(Receipt|Adjustment \+)/.test(d.v.txn)?q:-q)});return s}
+function reserved(){const r={},is=new Set(docs.filter(d=>d.m==="sl"&&d.v.txn==="Issue").map(d=>d.v.ref));docs.filter(d=>d.m==="so"&&!["Dispatched","Closed"].includes(d.st)&&!is.has(d.id)&&d.v.part).forEach(d=>r[d.v.part]=(r[d.v.part]||0)+(+d.v.qty||0));return r}
+function bomOf(c){const i=docs.find(x=>x.m==="it"&&x.v.code===c);return i?(i.v.bom||"").split("\n").map(l=>l.match(/^\s*([^:,\t ]+)\s*[:,\t ]\s*([\d.]+)/)).filter(Boolean).map(m=>[m[1],+m[2]]).filter(b=>b[0]!==c):[]}
+function ex(c,q,g,dp){const b=bomOf(c);if(!b.length||dp>4){g[c]=(g[c]||0)+q;return}b.forEach(([x,n])=>ex(x,q*n,g,dp+1))}
+function mrpCalc(){const g={},st=stock(),pr={};docs.filter(x=>x.m==="so"&&!["Dispatched","Closed"].includes(x.st)&&x.v.part).forEach(x=>ex(x.v.part,+x.v.qty||0,g,0));docs.filter(x=>x.m==="pr"&&x.st!=="Received"&&x.v.item).forEach(x=>pr[x.v.item]=(pr[x.v.item]||0)+(+x.v.qty||0));
+ return Object.keys(g).sort().map(c=>{const oh=st[c]||0,op=pr[c]||0;return{c,g:g[c],oh,op,net:Math.max(0,g[c]-oh-op)}})}
+const mk=(id,m,v,st,t)=>({id,m,v,st,chk:{},log:[[Date.now(),who(),t||"Created"]],ts:Date.now()});
+async function post(d){const v=d.v;if(d.posted)return;let es=[];
+ if(d.m==="grn"&&v.qc==="Pass"&&v.mcode&&v.qty)es=[["Receipt",v.mcode,+v.qty,d.id]];
+ if(d.m==="wo"&&d.st==="Finished"&&v.part&&v.qty)es=[["Receipt",v.part,+v.qty,d.id],...bomOf(v.part).map(([c,q])=>["Issue",c,q*v.qty,d.id])];
+ if(d.m==="dp"&&d.st==="Dispatched"){const so=docs.find(x=>x.id===v.so);if(so&&so.v.part)es=[["Issue",so.v.part,+so.v.qty,so.id]]}
+ if(!es.length)return;d.posted=1;let n=maxno("sl");await store.save(d);
+ for(const[t,i,q,r]of es){n++;await store.save(mk("SL-"+pad(n),"sl",{date:today(),item:i,txn:t,qty:q,ref:r,remark:"Auto-posted from "+d.id},"Posted","Auto-posted"))}}
+const dls=()=>[["cust","cu","name"],["supp","sp","name"],["item","it","code"]].map(([k,m,f])=>`<datalist id="dl_${k}">${docs.filter(x=>x.m===m).map(x=>`<option value="${esc(x.v[f])}">`).join("")}</datalist>`).join("");
+function daily(d){const day=d.v.date||today(),on=t=>new Date(t).toLocaleDateString("sv-SE")===day,L=[];
+ Object.entries(M).forEach(([k,m])=>{if(m.nb||k==="dr"||k==="sl")return;const ds=docs.filter(x=>x.m===k),c=ds.filter(x=>x.log.some(l=>on(l[0])&&l[2]==="Created")).length,u=ds.filter(x=>x.log.some(l=>on(l[0])&&l[2]!=="Created")).length;if(c||u)L.push(m.n+": "+c+" created, "+u+" updated")});
+ const bk=docs.filter(x=>x.m==="so"&&x.log.some(l=>on(l[0])&&l[2]==="Created")).reduce((a,x)=>a+(+x.v.total||0),0);if(bk)L.push("Sales booked: "+money(bk));
+ const sl=docs.filter(x=>x.m==="sl"&&x.v.date===day),i=sl.filter(x=>/^(Receipt|Adjustment \+)/.test(x.v.txn)).reduce((a,x)=>a+(+x.v.qty||0),0),o=sl.reduce((a,x)=>a+(+x.v.qty||0),0)-i;if(sl.length)L.push("Stock: "+sl.length+" entries, "+i+" in / "+o+" out");
+ const qa=docs.filter(x=>x.m==="qa"&&x.v.date===day);if(qa.length)L.push("Quality: "+qa.reduce((a,x)=>a+(+x.v.qtyOk||0),0)+" accepted, "+qa.reduce((a,x)=>a+(+x.v.qtyRej||0),0)+" rejected");
+ d.v.date=day;d.v.auto=L.join("\n")||"No activity recorded for "+day}
+function avail(){const s=stock(),r=reserved(),its=docs.filter(x=>x.m==="it"),cs=[...new Set([...its.map(x=>x.v.code),...Object.keys(s)])].filter(Boolean).sort();
+ app.innerHTML=`<h2>📦 Stock availability</h2><p class="mu">On hand = Stock Ledger balance. Reserved = open Sales Orders not yet issued.</p><input id="q" placeholder="Search item…"><div class="card wrap" style="margin-top:10px"><table><tr><th>Item</th><th>Description</th><th>On hand</th><th>Reserved</th><th>Available</th><th>Reorder at</th><th></th></tr>${cs.map(c=>{const it=its.find(x=>x.v.code===c),oh=s[c]||0,rs=r[c]||0,av=oh-rs,ro=it?+it.v.reorder||0:0,t=av<0?["Short","bad"]:av<=ro?["Low",""]:["OK","good"];return`<tr data-k="${esc(c+(it?it.v.desc:""))}"><td>${esc(c)}</td><td>${esc(it?it.v.desc:"")}</td><td>${oh}</td><td>${rs}</td><td><b>${av}</b></td><td>${ro}</td><td><span class="tag ${t[1]}">${t[0]}</span></td></tr>`}).join("")||'<tr><td colspan=7 class="mu">No items yet. Add Items &amp; BOM and post Stock Ledger entries.</td></tr>'}</table></div>`;
+ $("#q").oninput=e=>app.querySelectorAll("tr[data-k]").forEach(t=>t.style.display=t.dataset.k.toLowerCase().includes(e.target.value.toLowerCase())?"":"none")}
+function mrp(){const rows=mrpCalc(),sh=rows.filter(r=>r.net>0),ds=docs.filter(d=>d.m==="mr").sort((a,b)=>b.ts-a.ts),w=lvl("mr")>1;
+ app.innerHTML=`<h2>🧮 MRP run</h2><p class="mu">Explodes the BOM of every open Sales Order, then nets off stock on hand and open requisitions.</p><div class="card wrap"><table><tr><th>Item</th><th>Gross need</th><th>On hand</th><th>On order (PR)</th><th>Shortage</th></tr>${rows.map(r=>`<tr><td>${esc(r.c)}</td><td>${r.g}</td><td>${r.oh}</td><td>${r.op}</td><td>${r.net?`<span class="tag bad">${r.net}</span>`:'<span class="tag good">OK</span>'}</td></tr>`).join("")||'<tr><td colspan=5 class="mu">No open Sales Orders with a part code.</td></tr>'}</table></div>${w?`<div class="row"><button class="p" id="r1"${sh.length?"":" disabled"}>Run &amp; raise ${sh.length} PR(s)</button><button id="r2"${rows.length?"":" disabled"}>Save run only</button></div>`:""}<h3>Previous runs</h3><div class="card wrap"><table>${ds.map(d=>`<tr class="r" data-id="${d.id}"><td>${d.id}</td><td>${esc(d.v.date)}</td><td>${d.v.short} short</td><td>${d.v.prs} PR</td></tr>`).join("")||'<tr><td class="mu">None yet</td></tr>'}</table></div>`;
+ const run=async raise=>{let n=maxno("pr");const id="MR-"+pad(maxno("mr")+1);if(raise)for(const r of sh){n++;await store.save(mk("PR-"+pad(n),"pr",{item:r.c,qty:r.net,notes:"Raised by MRP "+id},"Raised"))}
+  await store.save(mk(id,"mr",{date:today(),scope:"All open Sales Orders",lines:rows.length,short:sh.length,prs:raise?sh.length:0,result:rows.map(r=>`${r.c}: need ${r.g}, stock ${r.oh}, on order ${r.op}, short ${r.net}`).join("\n")},"Completed"))};
+ if(w){$("#r1").onclick=()=>run(true);$("#r2").onclick=()=>run(false)}
+ app.querySelectorAll("tr.r").forEach(r=>r.onclick=()=>open(docs.find(d=>d.id===r.dataset.id)))}
+function pflow(){const st=M.wo.st,ws=docs.filter(d=>d.m==="wo"),w=lvl("pf")>1;
+ app.innerHTML=`<h2>🔧 Production flow</h2><p class="mu">Work Orders by stage. Moving to “Finished” books the product into stock and issues its BOM components.</p><div style="display:flex;gap:10px;overflow-x:auto;align-items:flex-start">${st.map((s,i)=>`<div style="min-width:190px;flex:1"><div class="mu" style="font-size:12px;margin-bottom:6px"><b>${s}</b> · ${ws.filter(d=>d.st===s).length}</div>${ws.filter(d=>d.st===s).map(d=>`<div class="card" style="padding:9px;margin-bottom:8px"><a data-o="${d.id}" style="cursor:pointer;color:var(--pr)"><b>${d.id}</b></a><div style="font-size:13px">${esc(d.v.part)} × ${d.v.qty||"-"}</div><div class="mu" style="font-size:12px">${d.v.due?"Due "+d.v.due:""}</div>${w?`<div class="row" style="margin:6px 0 0"><button data-m="${d.id}|-1"${i?"":" disabled"}>◀</button><button data-m="${d.id}|1"${i<st.length-1?"":" disabled"}>▶</button></div>`:""}</div>`).join("")}</div>`).join("")}</div>`;
+ app.querySelectorAll("[data-o]").forEach(a=>a.onclick=()=>open(docs.find(d=>d.id===a.dataset.o)));
+ app.querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{const[id,x]=b.dataset.m.split("|"),d=JSON.parse(JSON.stringify(docs.find(z=>z.id===id))),o=d.st;d.st=st[st.indexOf(o)+ +x];d.ts=Date.now();log(d,"Stage: "+o+" → "+d.st);await store.save(d);await post(d)})}
+function perms(){const pd=docs.find(x=>x.id==="PERM"),cur={...(pd?pd.v:{}),...(pmE||{})},R=ROLES.slice(1);
+ app.innerHTML=`<h2>🔐 User permissions</h2><p class="mu">Set what each role can do per module. Admin always has full access. Until you save, every role can edit everything. Pick a user in the “Acting as” box at the top to try a role.</p><div class="card wrap"><table><tr><th>Module</th>${R.map(r=>`<th>${r}</th>`).join("")}</tr>${ORD.filter(k=>k!=="pm"&&k!=="us").map(k=>`<tr><td>${M[k].ic} ${M[k].n}</td>${R.map(r=>`<td><select data-p="${r}_${k}" style="width:auto">${["No access","View","Edit"].map((t,i)=>`<option value="${i}"${(cur[r+"_"+k]??2)==i?" selected":""}>${t}</option>`).join("")}</select></td>`).join("")}</tr>`).join("")}</table></div><button class="p" id="spm">Save permissions</button>`;
+ app.querySelectorAll("[data-p]").forEach(e=>e.onchange=()=>{(pmE=pmE||{})[e.dataset.p]=+e.value});
+ $("#spm").onclick=async()=>{await store.save(mk("PERM","perm",{...cur,...(pmE||{})},"Active"));pmE=null;alert("Permissions saved")}}
+M.av.view=avail;M.mr.view=mrp;M.pf.view=pflow;M.pm.view=perms;
 // ---------- storage: shared live db, falls back to this device ----------
 function local(){let k="ge_live_docs",cb=()=>{};const rd=()=>{try{return JSON.parse(localStorage.getItem(k)||"[]")}catch(e){return[]}},wr=a=>{try{localStorage.setItem(k,JSON.stringify(a))}catch(e){}cb(a)};
  return{mode:"This device only",sub(f){cb=f;f(rd())},save(d){const a=rd().filter(x=>x.id!==d.id);a.push(d);wr(a)},del(id){wr(rd().filter(x=>x.id!==id))}}}
@@ -71,31 +143,38 @@ async function init(){let db=null;try{db=await claude.use("db")}catch(e){}
 // ---------- helpers ----------
 const nextNo=m=>{const n=docs.filter(d=>d.m===m).map(d=>+d.id.split("-")[1]||0);return M[m].p+"-"+String(Math.max(0,...n)+1).padStart(4,"0")};
 const label=d=>d.id+" · "+(d.v[M[d.m].main]||"—");
-function calc(m,v){M[m].f.forEach(f=>{if(f[2]==="c")v[f[0]]=Math.round(f[3](v))})}
-function blank(m,pre){const v={...pre};return{id:nextNo(m),m,v,st:M[m].st[0],chk:{},log:[],ts:Date.now()}}
-function prefill(from,to){const v=from.v,o={};o[to==="so"?"sq":"so"]=from.id;
- if(from.m==="sq"){Object.assign(o,{customer:v.customer,part:v.part,qty:v.qty,total:v.total,pay:v.pay})}
- if(from.m==="so"){Object.assign(o,{customer:v.customer,part:v.part,item:v.part,qty:v.qty})}
- if(from.m==="pr"){Object.assign(o,{pr:from.id,item:v.item,qty:v.qty,vendor:v.vendor})}
- if(from.m==="po"){Object.assign(o,{po:from.id,company:v.vendor,mcode:v.item,qty:v.qty,amount:v.total})}
- if(from.m==="wo"){o.so=v.so;o.customer=(docs.find(d=>d.id===v.so)||{v:{}}).v.customer;o.serials=v.serials}
- if(to==="sv"){delete o.so}
+function calc(m,v){M[m].f.forEach(f=>{if(f[2]==="c")v[f[0]]=Math.round(f[3](v)*100)/100})}
+function blank(m,pre){const v={...pre};if(M[m].f.some(f=>f[0]==="date")&&!v.date)v.date=today();return{id:nextNo(m),m,v,st:M[m].st[0],chk:{},log:[],ts:Date.now()}}
+function prefill(from,to){const v=from.v,o={};
+ if(from.m==="sq"&&to==="so")o.sq=from.id;else if(from.m==="so")o.so=from.id;
+ if(from.m==="cu")Object.assign(o,{customer:v.name,gstin:v.gstin,bill:v.bill,ship:v.ship,pay:v.credit?v.credit+" days":"",contact:v.contact,phone:v.phone});
+ if(from.m==="sp")o.vendor=v.name;
+ if(from.m==="it"){o.part=v.code;o.drawing="";o.bom=v.code}
+ if(from.m==="sq")Object.assign(o,{customer:v.customer,part:v.part,qty:v.qty,total:v.total,pay:v.pay,gst:v.gst});
+ if(from.m==="so")Object.assign(o,{customer:v.customer,part:v.part,item:v.part,qty:v.qty,gstin:v.gstin,gst:v.gst,rate:v.qty?Math.round(v.total/v.qty/(1+(v.gst||0)/100)*100)/100:"",contents:v.part});
+ if(from.m==="pr")Object.assign(o,{pr:from.id,item:v.item,qty:v.qty,vendor:v.vendor});
+ if(from.m==="po")Object.assign(o,{po:from.id,company:v.vendor,mcode:v.item,qty:v.qty,amount:v.total});
+ if(from.m==="wo"){o.so=v.so;o.wo=from.id;o.item=v.part;o.qtyIns=v.qty;o.customer=(docs.find(d=>d.id===v.so)||{v:{}}).v.customer;o.serials=v.serials}
+ if(from.m==="pi")Object.assign(o,{so:v.so,customer:v.customer,part:v.part,qty:v.qty,rate:v.rate,gst:v.gst});
+ if(to==="sv")delete o.so;
  return o}
-function log(d,t){d.log.push([Date.now(),me,t])}
+function log(d,t){d.log.push([Date.now(),who(),t])}
 // ---------- views ----------
 function nav(){const b=(k,t,c)=>`<button class="${c?"on":""}" data-go="${k}">${t}</button>`;
- $("#nav").innerHTML=b("","📊 Board",!view.m)+Object.entries(M).map(([k,m])=>b(k,m.ic+" "+m.n,view.m===k)).join("");
+ $("#nav").innerHTML=b("","📊 Board",!view.m)+GROUPS.map(g=>{const ks=g[1].filter(k=>lvl(k)>0);return ks.length?`<span class="mu" style="align-self:center;font-size:12px;padding-left:8px">${g[0]}</span>`+ks.map(k=>b(k,M[k].ic+" "+M[k].n,view.m===k)).join(""):""}).join("");
  $("#nav").querySelectorAll("button").forEach(x=>x.onclick=()=>{view={m:x.dataset.go||null,id:null,f:null};render()});
- $("#live").innerHTML=`<i></i>${esc(store?store.mode:"Connecting…")}`}
-function board(){app.innerHTML=`<h2>Live board</h2><p class="mu">Every document moves through the stages of its department flow. Tap a stage to see what's sitting there.</p>`+
- Object.entries(M).map(([k,m])=>{const ds=docs.filter(d=>d.m===k);return `<div class="card"><div class="row"><b>${m.ic} ${m.n}</b><span class="mu">${ds.length} total</span><button class="p" data-new="${k}" style="margin-left:auto">+ New</button></div>${m.st.map(s=>`<span class="chip" data-go="${k}" data-f="${esc(s)}">${esc(s)} <b>${ds.filter(d=>d.st===s).length}</b></span>`).join("")}</div>`}).join("");
+ $("#live").innerHTML=`<i></i>${esc(store?store.mode:"Connecting…")}`;
+ const us=docs.filter(d=>d.m==="us"&&d.st==="Active"),a=$("#as");a.innerHTML='<option value="">Admin (no login)</option>'+us.map(u=>`<option${u.v.name===asUser?" selected":""}>${esc(u.v.name)}</option>`).join("");a.onchange=e=>{asUser=e.target.value;try{localStorage.setItem("ge_as",asUser)}catch(x){}view={m:null,id:null,f:null};render()}}
+function board(){app.innerHTML=`<h2>Live board</h2><p class="mu">Every document moves through the stages of its flow. Tap a stage to see what's sitting there.</p>`+
+ ORD.filter(k=>!M[k].nb&&lvl(k)>0).map(k=>{const m=M[k],ds=docs.filter(d=>d.m===k);return `<div class="card"><div class="row"><b>${m.ic} ${m.n}</b><span class="mu">${ds.length} total</span>${lvl(k)>1&&!m.view?`<button class="p" data-new="${k}" style="margin-left:auto">+ New</button>`:""}</div>${m.st.map(s=>`<span class="chip" data-go="${k}" data-f="${esc(s)}">${esc(s)} <b>${ds.filter(d=>d.st===s).length}</b></span>`).join("")}</div>`}).join("");
  app.querySelectorAll("[data-new]").forEach(x=>x.onclick=()=>open(blank(x.dataset.new),true));
  app.querySelectorAll(".chip").forEach(x=>x.onclick=()=>{view={m:x.dataset.go,id:null,f:x.dataset.f};render()})}
-function list(){const m=M[view.m];let ds=docs.filter(d=>d.m===view.m&&(!view.f||d.st===view.f)).sort((a,b)=>b.ts-a.ts);
- const tot=m.amt?ds.reduce((s,d)=>s+(+d.v[m.amt]||0),0):0;
- app.innerHTML=`<div class="row"><h2 style="margin:0">${m.ic} ${m.n}</h2>${view.f?`<span class="tag">${esc(view.f)}</span><button id="cf">clear</button>`:""}<button class="p" id="nw" style="margin-left:auto">+ New ${m.p}</button></div>${tot?`<p class="mu">Value in view: <b>${money(tot)}</b></p>`:""}
- <div class="card wrap"><table><tr><th>No.</th><th>${esc(m.f.find(f=>f[0]===m.main)[1])}</th><th>Stage</th>${m.amt?"<th>₹</th>":""}</tr>${ds.map(d=>`<tr class="r" data-id="${d.id}"><td>${d.id}</td><td>${esc(d.v[m.main])}</td><td><span class="tag ${(m.bad||[]).includes(d.st)?"bad":(m.good||[]).includes(d.st)?"good":""}">${esc(d.st)}</span></td>${m.amt?`<td>${money(d.v[m.amt])}</td>`:""}</tr>`).join("")||`<tr><td colspan=4 class="mu">Nothing here yet.</td></tr>`}</table></div>`;
- $("#nw").onclick=()=>open(blank(view.m),true);const c=$("#cf");if(c)c.onclick=()=>{view.f=null;render()};
+function list(){const m=M[view.m],cs=(m.cols||[]).map(c=>m.f.find(f=>f[0]===c));let ds=docs.filter(d=>d.m===view.m&&(!view.f||d.st===view.f)).sort((a,b)=>b.ts-a.ts);
+ const tot=m.amt?ds.reduce((s,d)=>s+(+d.v[m.amt]||0),0):0,w=lvl(view.m)>1;
+ app.innerHTML=`<div class="row"><h2 style="margin:0">${m.ic} ${m.n}</h2>${view.f?`<span class="tag">${esc(view.f)}</span><button id="cf">clear</button>`:""}${w?`<button class="p" id="nw" style="margin-left:auto">+ New ${m.p}</button>`:""}</div>${tot?`<p class="mu">Value in view: <b>${money(tot)}</b></p>`:""}<input id="q" placeholder="Search…">
+ <div class="card wrap" style="margin-top:10px"><table><tr><th>No.</th><th>${esc(m.f.find(f=>f[0]===m.main)[1])}</th>${cs.map(f=>`<th>${esc(f[1].replace(" (auto)",""))}</th>`).join("")}<th>Stage</th>${m.amt?"<th>₹</th>":""}</tr>${ds.map(d=>`<tr class="r" data-id="${d.id}"><td>${d.id}</td><td>${esc(d.v[m.main])}</td>${cs.map(f=>`<td>${esc(d.v[f[0]])}</td>`).join("")}<td><span class="tag ${(m.bad||[]).includes(d.st)?"bad":(m.good||[]).includes(d.st)?"good":""}">${esc(d.st)}</span></td>${m.amt?`<td>${money(d.v[m.amt])}</td>`:""}</tr>`).join("")||`<tr><td colspan=9 class="mu">Nothing here yet.</td></tr>`}</table></div>`;
+ const nw=$("#nw");if(nw)nw.onclick=()=>open(blank(view.m),true);const c=$("#cf");if(c)c.onclick=()=>{view.f=null;render()};
+ $("#q").oninput=e=>app.querySelectorAll("tr.r").forEach(t=>t.style.display=t.textContent.toLowerCase().includes(e.target.value.toLowerCase())?"":"none");
  app.querySelectorAll("tr.r").forEach(r=>r.onclick=()=>open(docs.find(d=>d.id===r.dataset.id)))}
 let draft=null;
 function open(d,isNew){draft=JSON.parse(JSON.stringify(d));draft._new=!!isNew;view={m:d.m,id:d.id,f:null};nav();form();window.scrollTo(0,0)}
@@ -103,25 +182,25 @@ function form(){const d=draft,m=M[d.m];const inp=f=>{const[id,l,t,o]=f,v=d.v[id]
   if(t==="a")return`<label class="w">${l}<textarea rows=2 data-f="${id}">${esc(v)}</textarea></label>`;
   if(t==="s")return`<label>${l}<select data-f="${id}"><option></option>${o.map(x=>`<option${x===v?" selected":""}>${esc(x)}</option>`).join("")}</select></label>`;
   if(t==="r")return`<label>${l}<select data-f="${id}"><option value="">— none —</option>${docs.filter(x=>x.m===o).map(x=>`<option value="${x.id}"${x.id===v?" selected":""}>${esc(label(x))}</option>`).join("")}</select></label>`;
-  return`<label>${l}<input data-f="${id}" type="${t==="n"||t==="c"?"number":t==="d"?"date":"text"}" value="${esc(v)}"${t==="c"?" readonly":""}></label>`};
+  return`<label>${l}<input data-f="${id}" type="${t==="n"||t==="c"?"number":t==="d"?"date":"text"}" value="${esc(v)}"${t==="c"?" readonly":""}${t==="t"&&o?` list="dl_${o}"`:""}></label>`};
  app.innerHTML=`<button id="bk">← ${m.n} list</button><div class="card" style="margin-top:10px"><div class="row"><h2 style="margin:0">${m.ic} ${d.id}</h2><span class="mu" style="margin-left:auto">Stage</span><select id="stg" style="width:auto">${m.st.map(s=>`<option${s===d.st?" selected":""}>${esc(s)}</option>`).join("")}</select></div>
  <div class="row">${m.st.map((s,i)=>`<span class="tag ${i<=m.st.indexOf(d.st)?"":"bad"}" style="${i<=m.st.indexOf(d.st)?"":"background:var(--bd);color:var(--mu)"}">${esc(s)}</span>`).join("")}</div>
  <div class="grid">${m.f.map(inp).join("")}</div>
  ${m.chk?`<h3>${m.chk[0]}</h3><div class="chk">${m.chk[1].map((t,i)=>`<label><input type="checkbox" data-c="${i}"${d.chk[i]?" checked":""}>${esc(t)}</label>`).join("")}</div>`:""}
- <div class="row"><button class="p" id="sv">Save</button><button id="adv">Save & next stage ▸</button>${d._new?"":`<button class="d" id="dl" style="margin-left:auto">Delete</button>`}</div>
+ <div class="row"><button class="p" id="sv">Save</button>${m.btn?`<button id="bt">${m.btn[0]}</button>`:""}<button id="adv">Save & next stage ▸</button>${d._new?"":`<button class="d" id="dl" style="margin-left:auto">Delete</button>`}</div>
  ${!d._new&&m.next.length?`<h3>Continue the flow</h3><div class="row">${m.next.map(([k,t])=>`<button data-nx="${k}">→ ${t}</button>`).join("")}</div>`:""}
  ${d.log.length?`<h3>History</h3><div class="log">${d.log.slice().reverse().map(l=>`${new Date(l[0]).toLocaleString("en-IN")} · ${esc(l[1])} · ${esc(l[2])}<br>`).join("")}</div>`:""}</div>`;
  const pull=()=>{app.querySelectorAll("[data-f]").forEach(e=>{const t=m.f.find(f=>f[0]===e.dataset.f)[2];d.v[e.dataset.f]=t==="n"?(e.value===""?"":+e.value):e.value});app.querySelectorAll("[data-c]").forEach(e=>d.chk[e.dataset.c]=e.checked);calc(d.m,d.v)};
  app.querySelectorAll("[data-f]").forEach(e=>e.onchange=()=>{pull();m.f.forEach(f=>{if(f[2]==="c"){const c=app.querySelector(`[data-f=${f[0]}]`);if(c)c.value=d.v[f[0]]}})});
  const save=async(t)=>{pull();const o=draft.st;d.st=$("#stg").value;const n=d._new;delete d._new;d.ts=Date.now();if(n)log(d,"Created");else if(t)log(d,t);
   const oldSt=(docs.find(x=>x.id===d.id)||{}).st;if(!n&&oldSt&&oldSt!==d.st)log(d,"Stage: "+oldSt+" → "+d.st);
-  try{await store.save(d)}catch(e){alert("Could not save: "+(e.message||e))}};
+  try{await store.save(d);await post(d)}catch(e){alert("Could not save: "+(e.message||e))}};
  $("#sv").onclick=async()=>{await save("Edited");open(d)};
  $("#adv").onclick=async()=>{const i=m.st.indexOf($("#stg").value);if(i<m.st.length-1)$("#stg").value=m.st[i+1];await save();open(d)};
  $("#bk").onclick=()=>{view={m:d.m,id:null,f:null};render()};
  const dl=$("#dl");if(dl)dl.onclick=async()=>{if(confirm("Delete "+d.id+"?")){await store.del(d.id);view={m:d.m,id:null,f:null};render()}};
- app.querySelectorAll("[data-nx]").forEach(b=>b.onclick=()=>open(blank(b.dataset.nx,prefill(d,b.dataset.nx)),true))}
-function render(){if(!store)return;nav();if(!view.m)board();else if(view.id&&draft&&draft.id===view.id){if(!app.contains(document.activeElement)||!app.querySelector("#sv"))form()}else list()}
+ app.querySelectorAll("[data-nx]").forEach(b=>b.onclick=()=>open(blank(b.dataset.nx,prefill(d,b.dataset.nx)),true));app.insertAdjacentHTML("beforeend",dls());const bt=$("#bt");if(bt)bt.onclick=()=>{pull();m.btn[1](d);open(d,d._new)};if(lvl(d.m)<2){app.querySelectorAll("input,select,textarea").forEach(e=>e.disabled=true);app.querySelectorAll("#sv,#adv,#dl,#bt,[data-nx]").forEach(e=>e.style.display="none")}}
+function render(){if(!store)return;nav();if(!view.m)board();else if(lvl(view.m)===0)app.innerHTML="<p class=mu>You do not have access to this module.</p>";else if(view.id&&draft&&draft.id===view.id){if(!app.contains(document.activeElement)||!app.querySelector("#sv"))form()}else M[view.m].view?M[view.m].view():list()}
 init();
 if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script></body></html>

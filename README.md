@@ -22,5 +22,8 @@ Chrome DevTools → Application: manifest has no errors, `sw.js` is activated, C
 Switch Network to Offline and reload: the app still opens. Install via the Install button (iPhone: Share → Add to Home Screen).
 
 ## Live app
-`index.html` is the working app (Sales Quotation → Sales Order → PR → PO → GRN, Work Order, Dispatch & Invoice, Service). `flows.html` holds the original flow charts and checklists.
+`index.html` is the working app; `flows.html` holds the original flow charts.
+Modules — Sales: Customers, Quotation, Order, Proforma, Packing Slips, Delivery Challans, Tax Invoices. Purchase: Suppliers, PR, PO, GRN. Production: Items & BOM, MRP Run, Work Order, Production Flow, Quality. Stock: Ledger, Availability. Admin: Users & Roles, Permissions, Daily Report.
+Stock auto-posts: GRN QC=Pass (receipt), Work Order Finished (product in, BOM components out), Dispatch Dispatched (issue).
 Data is saved per device in the browser. Sharing between devices needs a backend.
+Permissions control what each role sees in the app; they are not a security boundary until a real login/backend is added.
